@@ -71,7 +71,7 @@ The [Kubernetes VerticalPodAutoscaler](https://kubernetes.io/docs/concepts/workl
 For this solution, we only need the `VPA Recommender`. You can install it by executing:
 
 ```sh
-kubectl apply -f config/vpa/install-vpa-recommender.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/vpa/install-vpa-recommender.yaml
 ```
 
 Alternatively, you can use this [helm chart](https://artifacthub.io/packages/helm/fairwinds-stable/vpa) to install, but make sure you customize the arguments correctly.
@@ -96,7 +96,7 @@ To generate a VerticalPodAutoscale, Kyverno needs to be given additional permiss
 Execute the following command to configure Kyverno permissions:
 
 ```sh
-kubectl apply -f config/kyverno/rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/rbac.yaml
 ```
 
 ### Install Kyverno Policies
@@ -104,8 +104,8 @@ kubectl apply -f config/kyverno/rbac.yaml
 Next, install Kyverno policies:
 
 ```sh
-kubectl apply -f config/kyverno/policies/generate-vpa.yaml
-kubectl apply -f config/kyverno/policies/check-resources.yaml
+kubectl apply -f https://github.com/nirmata/resource-optimizer/blob/main/config/kyverno/policies/generate-vpa.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/policies/check-resources.yaml
 ```
 
 The policies are configured to 
@@ -115,7 +115,7 @@ The policies are configured to
 Install a workload:
 
 ```sh
-kubectl apply -f config/workload/demo-kyverno-vpa.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/workload/demo-kyverno-vpa.yaml
 ```
 
 The VPA will start providing recommendations after around 60s:
