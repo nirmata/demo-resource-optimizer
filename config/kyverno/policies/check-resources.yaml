@@ -1,0 +1,80 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-resources
+spec:
+  validationFailureAction: Audit
+  background: true
+  admission: false
+  rules:
+    - name: memory
+      match: &matchDef
+        any:
+        - resources:
+            kinds:
+            - Deployment
+            - StatefulSet
+      context: &ruleContextDef
+        - name: vpa
+          # currently this will return errors if the VPA is not available
+          # so we fetch all VPAs and filter by the expected name
+          # see: https://github.com/kyverno/kyverno/issues/9723
+          # Note that this logic assumes that the VPA has the same name as the 
+          # pod controller (Deployment or StatefulSet) with the suffix "-kyverno".
+          apiCall:
+            urlPath: "/apis/autoscaling.k8s.io/v1/namespaces/{{request.namespace}}/verticalpodautoscalers/"
+            jmesPath: "items[?metadata.name == '{{request.object.metadata.name}}-kyverno'] | @[0] || `{}`"
+      preconditions: &pre
+        all:
+        - key: "{{ time_since('', '{{vpa.metadata.creationTimestamp}}', '') }}"
+          operator: GreaterThan
+          value: 1m
+      validate:
+        foreach:
+          - list: vpa.status.recommendation.containerRecommendations
+            context:
+            - name: ctnr
+              variable: &ctnrVariable
+                value: "{{ request.object.spec.template.spec.containers[?name == '{{element.containerName}}'] | @[0] }}"
+            - name: memRequest
+              variable:
+                value: "{{ ctnr.resources.requests.memory || `0` }}"
+            deny:
+              conditions:
+                any:
+                - key: "{{ multiply(memRequest, `0.80`) }}"
+                  operator: GreaterThan
+                  value: "{{ element.upperBound.memory }}"
+                  message: "overprovisioned resources: set memory.request ({{memRequest}}) < {{element.upperBound.memory}}"
+                - key: "{{ multiply(memRequest, `1.20`) }}"
+                  operator: LessThan
+                  value: "{{ element.lowerBound.memory }}"
+                  message: "underprovisioned resources: set memory.request ({{memRequest}}) > {{element.lowerBound.memory}}"
+    # Using multiple rules to report each violation separately. 
+    # Otherwise, processing stops at the first violation
+    # See: https://github.com/kyverno/kyverno/issues/8792   
+    - name: cpu
+      match: *matchDef
+      context: *ruleContextDef
+      preconditions: *pre
+      validate:
+        foreach:
+          - list: vpa.status.recommendation.containerRecommendations
+            context: 
+            - name: ctnr
+              variable: *ctnrVariable
+            - name: cpuRequest
+              variable:
+                value: "{{ ctnr.resources.requests.cpu || `0` }}"
+            deny:
+              conditions:
+                any:
+                - key: "{{ multiply(cpuRequest, `0.80`) }}"
+                  operator: GreaterThan
+                  value: "{{ element.upperBound.cpu }}"
+                  message: "overprovisioned resources: set cpu.request ({{cpuRequest}}) < {{element.upperBound.cpu}}"
+                - key: "{{ multiply(cpuRequest, `1.20`) }}"
+                  operator: LessThan
+                  value: "{{ element.lowerBound.cpu }}"
+                  message: "underprovisioned resources: set cpu.request ({{cpuRequest}}) > {{element.upperBound.cpu}}"

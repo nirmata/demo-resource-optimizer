@@ -1,0 +1,29 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-vpa
+spec:
+  generateExisting: true
+  rules:
+    - name: create-for-podcontrollers
+      match:
+        any:
+        - resources:
+            kinds:
+              - Deployment      
+              - StatefulSet
+      generate:
+        synchronize: true
+        kind: VerticalPodAutoscaler
+        apiVersion: autoscaling.k8s.io/v1
+        name: "{{request.object.metadata.name}}-kyverno" 
+        namespace: "{{request.object.metadata.namespace}}"
+        data:
+          spec:
+            targetRef:
+              apiVersion: "{{request.object.apiVersion}}"
+              kind: "{{request.object.kind}}"
+              name: "{{request.object.metadata.name}}"
+            updatePolicy:
+              updateMode: "Off" 
