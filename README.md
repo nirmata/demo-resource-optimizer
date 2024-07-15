@@ -6,13 +6,15 @@ This Nirmata solution uses [Kyverno polices](https://kyverno.io/) and the [Kuber
 
 A [Kyverno generate policy](./config/kyverno/policies/generate-vpa.yaml) is used to generate a VerticalPodAutocaler (VPA) for Deployment and StatefulSet resources, with the VPA updater mode set to `Off`. This allows the VPA Recommender to observe resource metrics and provide recommendations for each container, without making any changes.
 
-Next, a [Kyverno validate policy](./config/kyverno/policies/generate-vpa.yaml) is used to periodically each resource and compare its resource requests to the upper and lower bounds reported by the VPA recommender.
+Next, a [Kyverno validate policy](./config/kyverno/policies/generate-vpa.yaml) is used to periodically each resource and compare its resource requests to the upper and lower bounds reported by the VPA recommender. 
 
 The policy rule allows for a (customizable) 20% deviation i.e. only reports violations if the request is 20% higher than the upperbound, or 20% lower than the lowerbound. The rule also handles workloads where no resource request is set, and recommends a setting.
 
+For demo purposes, the rule processes VPA recommendations 1 minute after creation. For production, this should be updated to a higher value.
+
 ## Benefits
 
-Leveraging Kyverno policies, policy reports, exceptions, and other features provides an easy to use, scalable, and customizable solution for resource optimization and tuning. Developers can easily access and review violations using native tools, and no additional controllers are required.
+Leveraging Kyverno's native policies, policy reports, exceptions, and other features provides an easy to use, scalable, and customizable solution for resource optimization and tuning. Developers can easily access and review violations using native tools, and no additional controllers are required.
 
 ## Demo
 
