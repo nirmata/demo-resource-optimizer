@@ -18,7 +18,7 @@ Leveraging Kyverno's native policies, policy reports, exceptions, and other feat
 
 ## Demo
 
-This demo script uses a `kind` cluster. 
+This demo script uses a `kind` cluster and `helm`. 
 
 If you do not have `kind` installed use:  
 
