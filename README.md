@@ -219,7 +219,7 @@ kubectl -n demo-kyverno-vpa get vpa -o yaml
 
 The VPA Recommender will improve the upper and lower bound recommendations over time.
 
-For demo purposes [policy rule](./config/kyverno/policies/check-resources.yaml) only waits for 1 minute, to start using VPA recommendations. 
+For demo purposes [policy rule](./config/kyverno/policies/check-resources.yaml) only waits for `0` minutes to start using VPA recommendations.
 
 For production, this should be set to a much higher amount e.g `24h`.
 

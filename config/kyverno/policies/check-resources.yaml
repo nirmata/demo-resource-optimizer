@@ -29,7 +29,7 @@ spec:
         all:
         - key: "{{ time_since('', '{{vpa.metadata.creationTimestamp}}', '') }}"
           operator: GreaterThan
-          value: 1m # Set to >24h for production
+          value: 0m # Set to >24h for production
       validate:
         foreach:
           - list: vpa.status.recommendation.containerRecommendations
