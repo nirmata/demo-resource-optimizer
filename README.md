@@ -91,7 +91,7 @@ helm repo update
 helm install kyverno kyverno/kyverno -n kyverno --create-namespace
 ```
 
-### Install Kyverno RBAC 
+### Configure Kyverno RBAC permissions
 
 To generate a VerticalPodAutoscale, Kyverno needs to be given additional permissions for VPA resources.
 
@@ -106,7 +106,7 @@ kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/ma
 Next, install Kyverno policies:
 
 ```sh
-kubectl apply -f https://github.com/nirmata/resource-optimizer/blob/main/config/kyverno/policies/generate-vpa.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/policies/generate-vpa.yaml
 kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/policies/check-resources.yaml
 ```
 
