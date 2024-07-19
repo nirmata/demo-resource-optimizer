@@ -234,9 +234,5 @@ kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin
 
 The VPA will record the upper and lower bounds based on the load.
 
-## To Do
 
-1. Add tests
-2. Move VPA install to a Helm Chart
-3. Add check for minimum age of VPA
 
