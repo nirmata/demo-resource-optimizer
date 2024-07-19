@@ -1,4 +1,4 @@
-# Policy-based Resource Optimization
+# Policy-Based Resource Optimization with Kyverno
 
 This Nirmata solution uses [Kyverno polices](https://kyverno.io/) and the [Kubernetes VPA recommender](https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/pkg/recommender/README.md) to help optimize resource allocations for workloads. 
 
