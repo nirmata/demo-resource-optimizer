@@ -46,11 +46,11 @@ spec:
                 - key: "{{ multiply(memRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.memory }}"
-                  message: "overprovisioned resources: set memory.request ({{memRequest}}) < {{element.upperBound.memory}}"
+                  message: "overprovisioned resources: set memory.request < {{element.upperBound.memory}} (currently {{memRequest}})"
                 - key: "{{ multiply(memRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.memory }}"
-                  message: "underprovisioned resources: set memory.request ({{memRequest}}) > {{element.lowerBound.memory}}"
+                  message: "underprovisioned resources: set memory.request > {{element.lowerBound.memory}} (currently {{memRequest}})"
     # Using multiple rules to report each violation separately. 
     # Otherwise, processing stops at the first violation
     # See: https://github.com/kyverno/kyverno/issues/8792   
@@ -73,8 +73,8 @@ spec:
                 - key: "{{ multiply(cpuRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.cpu }}"
-                  message: "overprovisioned resources: set cpu.request ({{cpuRequest}}) < {{element.upperBound.cpu}}"
+                  message: "overprovisioned resources: set cpu.request < {{element.upperBound.cpu}} (currently {{cpuRequest}})"
                 - key: "{{ multiply(cpuRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.cpu }}"
-                  message: "underprovisioned resources: set cpu.request ({{cpuRequest}}) > {{element.upperBound.cpu}}"
+                  message: "underprovisioned resources: set cpu.request > {{element.upperBound.cpu}} (currently {{cpuRequest}})"
