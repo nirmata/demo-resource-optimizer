@@ -10,7 +10,7 @@ Next, a [Kyverno validate policy](./config/kyverno/policies/generate-vpa.yaml) i
 
 The policy rule allows for a (customizable) 20% deviation i.e. only reports violations if the request is 20% higher than the upperbound, or 20% lower than the lowerbound. The rule also handles workloads where no resource request is set, and recommends a setting.
 
-For demo purposes, the rule processes VPA recommendations 1 minute after creation. For production, this should be updated to a higher value.
+For demo purposes, the rule processes VPA recommendations immediately after creation. For production, this should be updated to a higher value.
 
 ## Benefits
 
@@ -73,7 +73,7 @@ The [Kubernetes VerticalPodAutoscaler](https://kubernetes.io/docs/concepts/workl
 For this solution, we only need the `VPA Recommender`. You can install it by executing:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/vpa/install-vpa-recommender.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/vpa/install-vpa-recommender.yaml
 ```
 
 Alternatively, you can use this [helm chart](https://artifacthub.io/packages/helm/fairwinds-stable/vpa) to install, but make sure you customize the arguments correctly.
@@ -98,26 +98,24 @@ To generate a VerticalPodAutoscale, Kyverno needs to be given additional permiss
 Execute the following command to configure Kyverno permissions:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/rbac.yaml
 ```
 
-### Install Kyverno Policies
+## Install a Kyverno policies
 
-Next, install Kyverno policies:
+Install the policy to generate a VPA for deployments and statefulsets:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/policies/generate-vpa.yaml
-kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/kyverno/policies/check-resources.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/policies/generate-vpa.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/policies/check-resources.yaml
 ```
-
-The policies are configured to 
 
 ## Run a workload
 
 Install a workload:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/nirmata/resource-optimizer/main/config/workload/demo-kyverno-vpa.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/workload/demo-kyverno-vpa.yaml
 ```
 
 The VPA will start providing recommendations after around 60s:
@@ -142,6 +140,14 @@ kubectl -n demo-kyverno-vpa get polr
 NAME                                   KIND         NAME   PASS   FAIL   WARN   ERROR   SKIP   AGE
 fb7b3a29-3b37-44d6-b1a5-c2eee2ca41c8   Deployment   demo   1      1      0      0       0      3s
 ```
+
+**NOTE**: if you do not see policy reports, try updating the deployment:
+
+```sh
+kubectl -n demo-kyverno-vpa label deployments demo update=true
+```
+
+Check the report details:
 
 ```sh
 kubectl -n demo-kyverno-vpa get polr -o yaml | grep "result: fail" -A 10 -B 3

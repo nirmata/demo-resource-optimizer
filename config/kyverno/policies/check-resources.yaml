@@ -3,6 +3,13 @@ apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: check-resources
+  annotations:
+    policies.kyverno.io/title: Check Resources
+    policies.kyverno.io/category: Resource Optimization
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy checks if the resources requested by a pod controller (Deployment or StatefulSet) 
+      are within the bounds recommended by the Vertical Pod Autoscaler (VPA).
 spec:
   validationFailureAction: Audit
   background: true
@@ -27,6 +34,9 @@ spec:
             jmesPath: "items[?metadata.name == '{{request.object.metadata.name}}-kyverno'] | @[0] || `{}`"
       preconditions: &pre
         all:
+        - key: "{{ vpa.status || `{}` }}"
+          operator: NotEquals
+          value: {}
         - key: "{{ time_since('', '{{vpa.metadata.creationTimestamp}}', '') }}"
           operator: GreaterThan
           value: 0m # Set to >24h for production
@@ -46,11 +56,11 @@ spec:
                 - key: "{{ multiply(memRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.memory }}"
-                  message: "overprovisioned resources: set memory.request < {{element.upperBound.memory}} (currently {{memRequest}})"
+                  message: "overprovisioned resources: reduce memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi"
                 - key: "{{ multiply(memRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.memory }}"
-                  message: "underprovisioned resources: set memory.request > {{element.lowerBound.memory}} (currently {{memRequest}})"
+                  message: "underprovisioned resources: increase memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi"
     # Using multiple rules to report each violation separately. 
     # Otherwise, processing stops at the first violation
     # See: https://github.com/kyverno/kyverno/issues/8792   
@@ -73,8 +83,8 @@ spec:
                 - key: "{{ multiply(cpuRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.cpu }}"
-                  message: "overprovisioned resources: set cpu.request < {{element.upperBound.cpu}} (currently {{cpuRequest}})"
+                  message: "overprovisioned resources: reduce cpu.request from {{cpuRequest}} to {{element.target.cpu}}"
                 - key: "{{ multiply(cpuRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.cpu }}"
-                  message: "underprovisioned resources: set cpu.request > {{element.upperBound.cpu}} (currently {{cpuRequest}})"
+                  message: "underprovisioned resources: increase cpu.request from {{cpuRequest}} to over {{element.target.cpu}}"

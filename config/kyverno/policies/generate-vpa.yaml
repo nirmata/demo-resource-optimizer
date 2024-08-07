@@ -3,8 +3,16 @@ apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: generate-vpa
+  annotations:
+    policies.kyverno.io/title: Generate VPA
+    policies.kyverno.io/category: Resource Optimization
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy generates Vertical Pod Autoscalers (VPAs)
+      for Deployment and StatefulSet resources.
 spec:
-  generateExisting: true
+  # uncomment the following line to generate VPAs for existing resources
+  #generateExisting: true
   rules:
     - name: create-for-podcontrollers
       match:
