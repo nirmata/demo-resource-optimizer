@@ -12,7 +12,7 @@ metadata:
       for Deployment and StatefulSet resources.
 spec:
   # uncomment the following line to generate VPAs for existing resources
-  #generateExisting: true
+  generateExisting: true
   rules:
     - name: create-for-podcontrollers
       match:
