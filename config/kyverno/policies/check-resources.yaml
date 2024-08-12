@@ -22,6 +22,15 @@ spec:
             kinds:
             - Deployment
             - StatefulSet
+            - DaemonSet
+      exclude:
+        any: 
+        - resources:
+          selector:
+            matchLabels:
+              nirmata.io/resource-optimizer: "false"
+        - namespaces:
+          - kube-system
       context: &ruleContextDef
         - name: vpa
           # currently this will return errors if the VPA is not available
