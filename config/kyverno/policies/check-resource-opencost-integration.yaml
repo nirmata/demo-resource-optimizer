@@ -1,0 +1,110 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-resources
+  annotations:
+    policies.kyverno.io/title: Check Resources
+    policies.kyverno.io/category: Resource Optimization
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy checks if the resources requested by a pod controller (Deployment or StatefulSet) 
+      are within the bounds recommended by the Vertical Pod Autoscaler (VPA).
+spec:
+  validationFailureAction: Audit
+  background: true
+  admission: false
+  rules:
+    - name: memory
+      match: &matchDef
+        any:
+        - resources:
+            kinds:
+            - Deployment
+            - StatefulSet
+            - DaemonSet
+      exclude:
+        any: 
+        - resources:
+            selector:
+              matchLabels:
+                nirmata.io/resource-optimizer: "false"
+            namespaces:
+            - kube-system
+      context: &ruleContextDef
+        - name: vpa
+          # currently this will return errors if the VPA is not available
+          # so we fetch all VPAs and filter by the expected name
+          # see: https://github.com/kyverno/kyverno/issues/9723
+          # Note that this logic assumes that the VPA has the same name as the 
+          # pod controller (Deployment or StatefulSet) with the suffix "-kyverno".
+          apiCall:
+            urlPath: "/apis/autoscaling.k8s.io/v1/namespaces/{{request.namespace}}/verticalpodautoscalers/"
+            jmesPath: "items[?metadata.name == '{{request.object.metadata.name}}-kyverno'] | @[0] || `{}`"
+        - name: result
+          apiCall:
+            method: GET
+            service:
+              url: http://opencost.opencost:9090/model/allocation/compute?window=1h&aggregate=container&step=1d&accumulate=false
+        - name: cpuCost
+          variable:
+            value: "{{ result.data[0].{{request.object.metadata.name}}.cpuCost}}"
+        - name: memoryCost
+          variable:
+            value: "{{ result.data[0].{{request.object.metadata.name}}.ramCost}}"
+      preconditions: &pre
+        all:
+        - key: "{{ vpa.status || `{}` }}"
+          operator: NotEquals
+          value: {}
+        - key: "{{ time_since('', '{{vpa.metadata.creationTimestamp}}', '') }}"
+          operator: GreaterThan
+          value: 0m # Set to >24h for production
+      validate:
+        foreach:
+          - list: vpa.status.recommendation.containerRecommendations
+            context:
+            - name: ctnr
+              variable: &ctnrVariable
+                value: "{{ request.object.spec.template.spec.containers[?name == '{{element.containerName}}'] | @[0] }}"
+            - name: memRequest
+              variable:
+                value: "{{ ctnr.resources.requests.memory || `0` }}"
+            deny:
+              conditions:
+                any:
+                - key: "{{ multiply(memRequest, `0.80`) }}"
+                  operator: GreaterThan
+                  value: "{{ element.upperBound.memory }}"
+                  message: "overprovisioned resources: reduce memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost savings on memory would be from ${{ memoryCost }}/hr to ${{multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`)))}}/hr"
+                - key: "{{ multiply(memRequest, `1.20`) }}"
+                  operator: LessThan
+                  value: "{{ element.lowerBound.memory }}"
+                  message: "underprovisioned resources: increase memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost increase on memory would be from ${{ memoryCost }}/hr to ${{multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`)))}}/hr"
+    # Using multiple rules to report each violation separately. 
+    # Otherwise, processing stops at the first violation
+    # See: https://github.com/kyverno/kyverno/issues/8792   
+    - name: cpu
+      match: *matchDef
+      context: *ruleContextDef
+      preconditions: *pre
+      validate:
+        foreach:
+          - list: vpa.status.recommendation.containerRecommendations
+            context: 
+            - name: ctnr
+              variable: *ctnrVariable
+            - name: cpuRequest
+              variable:
+                value: "{{ ctnr.resources.requests.cpu || `0` }}"
+            deny:
+              conditions:
+                any:
+                - key: "{{ multiply(cpuRequest, `0.80`) }}"
+                  operator: GreaterThan
+                  value: "{{ element.upperBound.cpu }}"
+                  message: "overprovisioned resources: reduce cpu.request from {{cpuRequest}} to {{element.target.cpu}} total cost savings on CPU would be from ${{cpuCost}}/hr to ${{ multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}'))}}/hr"
+                - key: "{{ multiply(cpuRequest, `1.20`) }}"
+                  operator: LessThan
+                  value: "{{ element.lowerBound.cpu }}"
+                  message: "underprovisioned resources: increase cpu.request from {{cpuRequest}} to over {{element.target.cpu}} total cost increase on CPU would be from ${{cpuCost}}/hr to ${{ multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}'))}}/hr"
