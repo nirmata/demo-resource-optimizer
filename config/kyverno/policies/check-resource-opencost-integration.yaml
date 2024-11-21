@@ -76,11 +76,11 @@ spec:
                 - key: "{{ multiply(memRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.memory }}"
-                  message: "overprovisioned resources: reduce memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost savings on memory would be from ${{ memoryCost }}/hr to ${{multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`)))}}/hr"
+                  message: "overprovisioned resources: reduce memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost savings on memory would be from ${{ multiply(memoryCost, `720`) }}/month to ${{multiply(multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`))), `720`)}}/month"
                 - key: "{{ multiply(memRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.memory }}"
-                  message: "underprovisioned resources: increase memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost increase on memory would be from ${{ memoryCost }}/hr to ${{multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`)))}}/hr"
+                  message: "underprovisioned resources: increase memory.request from {{memRequest}} to {{ divide(element.target.memory, `1048576`) }}Mi total cost increase on memory would be from ${{ multiply(memoryCost, `720`) }}/month to ${{multiply(multiply(divide('{{element.target.memory}}', '1048576'), divide('{{memoryCost}}', divide('{{memRequest}}', `1048576`))), `720`)}}/month"
     # Using multiple rules to report each violation separately. 
     # Otherwise, processing stops at the first violation
     # See: https://github.com/kyverno/kyverno/issues/8792   
@@ -103,8 +103,8 @@ spec:
                 - key: "{{ multiply(cpuRequest, `0.80`) }}"
                   operator: GreaterThan
                   value: "{{ element.upperBound.cpu }}"
-                  message: "overprovisioned resources: reduce cpu.request from {{cpuRequest}} to {{element.target.cpu}} total cost savings on CPU would be from ${{cpuCost}}/hr to ${{ multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}'))}}/hr"
+                  message: "overprovisioned resources: reduce cpu.request from {{cpuRequest}} to {{element.target.cpu}} total cost savings on CPU would be from ${{multiply(cpuCost, `720`)}}/month to ${{ multiply(multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}')), `720`)}}/month"
                 - key: "{{ multiply(cpuRequest, `1.20`) }}"
                   operator: LessThan
                   value: "{{ element.lowerBound.cpu }}"
-                  message: "underprovisioned resources: increase cpu.request from {{cpuRequest}} to over {{element.target.cpu}} total cost increase on CPU would be from ${{cpuCost}}/hr to ${{ multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}'))}}/hr"
+                  message: "underprovisioned resources: increase cpu.request from {{cpuRequest}} to over {{element.target.cpu}} total cost increase on CPU would be from ${{multiply(cpuCost, `720`)}}/month to ${{ multiply(multiply(divide('{{element.target.cpu}}', '1000m'),divide('{{cpuCost}}', '{{cpuRequest}}')), `720`)}}/month"
