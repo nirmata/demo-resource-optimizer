@@ -55,6 +55,15 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 helm install prometheus prometheus-community/prometheus -n prometheus --create-namespace
 ```
+### Install Kube-Prometheus-Stack -  (optional - includes Prometheus-Pperator & Grafana)
+
+To install the Kube-Prometheus-Stack, execute:
+
+```sh
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus --create-namespace
+```
 
 NOTE: if you chose not to install Prometheus, remove or update the following lines in the VPA recommender installation:
 
