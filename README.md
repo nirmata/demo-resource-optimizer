@@ -98,7 +98,8 @@ To generate a VerticalPodAutoscale, Kyverno needs to be given additional permiss
 Execute the following command to configure Kyverno permissions:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/kyverno-vpa-rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/nirmata/demo-resource-optimizer/main/config/kyverno/kyverno-vpa-rolebinding.yaml
 ```
 
 ## Install a Kyverno policies
