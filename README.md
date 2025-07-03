@@ -44,7 +44,7 @@ helm repo update
 helm upgrade --install --set args={--kubelet-insecure-tls} metrics-server metrics-server/metrics-server --namespace kube-system
 ```
 
-### Install Prometheus (optional)
+### Install Prometheus (optional) or Kube-Prometheus-Stack (optional - includes Prometheus-Operator & Grafana)
 
 Prometheus is optional, but can help the VPA recommender with historical data for accuracy. 
 
@@ -55,7 +55,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 helm install prometheus prometheus-community/prometheus -n prometheus --create-namespace
 ```
-### Install Kube-Prometheus-Stack -  (optional - includes Prometheus-Pperator & Grafana)
+### Install Kube-Prometheus-Stack
 
 To install the Kube-Prometheus-Stack, execute:
 
