@@ -1,0 +1,88 @@
+apiVersion: policies.kyverno.io/v1alpha1
+kind: ValidatingPolicy
+metadata:
+  name: check-vpa-recommendations
+  annotations:
+    policies.kyverno.io/title: Require Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    kyverno.io/kyverno-version: 1.16.0
+    policies.kyverno.io/subject: Pod, Label
+    policies.kyverno.io/description: >-
+      Define and use labels that identify semantic attributes of your application or Deployment. A common set of labels allows tools to work collaboratively, describing objects in a common manner that all tools can understand. The recommended labels describe applications in a way that can be queried. This policy validates that the label `app.kubernetes.io/name` is specified with some value.
+spec:
+  validationActions:
+    - Deny
+  evaluation:
+    background:
+      enabled: true
+    admission:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: ["deployments", "statefulsets", "daemonsets"]
+  matchConditions:
+    - name: check-namespace
+      expression: "has(object.metadata) && has(object.metadata.namespace) && object.metadata.namespace != 'kube-system'"
+    - name: check-resource-optimizer-label
+      expression: >-
+        !has(object.metadata.labels) ||
+        !('nirmata.io/resource-optimizer' in object.metadata.labels) ||
+        object.metadata.labels['nirmata.io/resource-optimizer'] == 'false'
+  variables:
+    - name: expectedVpaName
+      expression: "object.metadata.name + '-kyverno'"
+    - name: vpaList
+      expression: >-
+        resource.List("autoscaling.k8s.io/v1", "verticalpodautoscalers", object.metadata.namespace).items
+    - name: matchingVpa
+      expression: >-
+        variables.vpaList.orValue([]).filter(v, v.metadata.name == variables.expectedVpaName)[0]
+  validations:
+    # Skip validation if no VPA/recommendations, otherwise validate resource allocations
+    - expression: >-
+        variables.matchingVpa == null ||
+        !has(variables.matchingVpa.status) ||
+        !has(variables.matchingVpa.status.recommendation) ||
+        !has(variables.matchingVpa.status.recommendation.containerRecommendations) ||
+        variables.matchingVpa.status.recommendation.containerRecommendations.size() == 0 ||
+        variables.matchingVpa.status.recommendation.containerRecommendations.all(rec,
+          object.spec.template.spec.containers
+            .filter(c, c.name == rec.containerName).size() == 0 ||
+          !has(object.spec.template.spec.containers
+            .filter(c, c.name == rec.containerName)[0].resources) ||
+          !has(object.spec.template.spec.containers
+            .filter(c, c.name == rec.containerName)[0].resources.requests) ||
+          (
+            has(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.memory) &&
+            quantity(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.memory)
+              .isGreaterThan(quantity(rec.upperBound.memory))
+          ) ||
+          (
+            has(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.memory) &&
+            quantity(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.memory)
+              .isLessThan(quantity(rec.lowerBound.memory))
+          ) ||
+          (
+            has(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.cpu) &&
+            quantity(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.cpu)
+              .isGreaterThan(quantity(rec.upperBound.cpu))
+          ) ||
+          (
+            has(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.cpu) &&
+            quantity(object.spec.template.spec.containers
+              .filter(c, c.name == rec.containerName)[0].resources.requests.cpu)
+              .isLessThan(quantity(rec.lowerBound.cpu))
+          )
+        )
+      message: "Container resource requests exceed VPA recommended bounds"
